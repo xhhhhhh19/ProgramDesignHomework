@@ -22,12 +22,12 @@ import pymssql
 class portalToSQL:
     
     # 基础信息
-    username = '2020212096'               # 信息门户登录用户名 ???
+    username = ''               # 信息门户登录用户名 ???
     password = ''               # 信息门户登录密码
-    server = "LAPTOP-L"        # 服务器地址，该处为本地地址
-    sqlUsername = "sa"            # 数据库用户名
-    sqlPassword = "Anewpassword"            # 数据库密码
-    database = "bupt"               # 数据库名
+    server = ""        # 服务器地址，该处为本地地址
+    sqlUsername = ""            # 数据库用户名
+    sqlPassword = ""            # 数据库密码
+    database = ""               # 数据库名
     
 
     '''
@@ -61,8 +61,8 @@ class portalToSQL:
             if(inp.get('name'))!=None:
                 dic[inp.get('name')]=inp.get('value')
 
-        # dic['username']='2020212096'
-        # dic['password']='Lyt38078660'
+        # dic['username']=''
+        # dic['password']=''
 
         return dic
     
@@ -109,8 +109,8 @@ class portalToSQL:
             pass # 解决不含img信息时的报错问题
         
         for p in allP:
-            article.append('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + p.text.strip() + '\n')
-            
+            # article.append('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + p.text.strip() + '\n')
+            article.append( p.text.strip() + '\n')
         for i in range(0,len(article)):
             tmp += article[i] 
         result['article'] = tmp
