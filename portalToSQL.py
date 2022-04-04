@@ -1,4 +1,4 @@
-
+"""
 Description: 该文件包含一个 portalToSQL 类，用于将门户中特定的消息更新到 Microsoft SQL Server
             数据库中。构造函数中含有 loginUrl, cookie, infoUrl, infoHref, lableName 5个参数。
             loginUrl    登录页面的URL                    String
@@ -17,18 +17,26 @@ from bs4 import BeautifulSoup as bs
 import re
 import pandas as pd
 import pymssql
-
+import pymysql
+pymysql.install_as_MySQLdb()
+from sqlalchemy import create_engine
 
 class portalToSQL:
     
     # 基础信息
-    username = ''               # 信息门户登录用户名 ???
-    password = ''               # 信息门户登录密码
-    server = ""        # 服务器地址，该处为本地地址
-    sqlUsername = ""            # 数据库用户名
-    sqlPassword = ""            # 数据库密码
-    database = ""               # 数据库名
-    
+    username = '2020212096'               # 信息门户登录用户名 ???
+    userpassword = ''               # 信息门户登录密码
+    # server = "LAPTOP-L"        # 服务器地址，该处为本地地址
+    # sqlUsername = "sa"            # 数据库用户名
+    # sqlPassword = "Anewpassword"            # 数据库密码
+    # database = "bupt"               # 数据库名
+
+    host="localhost"
+    port=3306
+    database="data"
+    user="root"
+    password="20021214Yzz+"
+    charset='utf8'
 
     '''
     Input:      loginUrl:   登录网址
@@ -61,8 +69,8 @@ class portalToSQL:
             if(inp.get('name'))!=None:
                 dic[inp.get('name')]=inp.get('value')
 
-        # dic['username']=''
-        # dic['password']=''
+        # dic['username']='2020212096'
+        # dic['password']='Lyt38078660'
 
         return dic
     
@@ -109,8 +117,8 @@ class portalToSQL:
             pass # 解决不含img信息时的报错问题
         
         for p in allP:
-            # article.append('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + p.text.strip() + '\n')
-            article.append( p.text.strip() + '\n')
+            article.append('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + p.text.strip() + '\n')
+            
         for i in range(0,len(article)):
             tmp += article[i] 
         result['article'] = tmp
@@ -132,30 +140,43 @@ class portalToSQL:
     Function:   将 df 写入 database 数据库的 lablename 表中
     '''
     def toSqlServer(self, df):
-        connect = pymssql.connect(self.server,  self.username,self.database,self.password)
-        # connect = pymssql.connect(server='LAPTOP-L', database='bupt')
-        # connect = pymssql.connect(host='localhost',  port='1433', database='bupt')
-        # connect = pymssql.connect(host='localhost', port='1433', database='bupt')
-        # 一次插入多条数据
-        cols = ','.join(df.columns)
-        val = (tuple(i) for i in df.values) # 这里需要转成tuple类型才能写入到数据库中
-        sqlstr = "INSERT INTO {}({}) VALUES ({})".format(self.lableName, cols, ','.join(['%s']*len(df.columns)))
+        # connect=pymysql.connect(host=self.host,user=self.user,port=self.port,passwd=self.password,database=self.database,charset=self.charset)
+        # df  为处理好的数据，to_filename为要传入的数据库表的名称
+        #  构建信息。即数据库的基本信息
+        # engine = create_engine(
+        #     str(r'mysql+pymysql://%s:%s@%s:%s/%s?charset=%s' % (self.database,self.password, self.host, self.port, self.user, self.charset)))
 
-        try:
-            with connect.cursor() as cursor:
-                cursor.executemany(sqlstr, val)
-                sqlDel = 'Delete T From (Select Row_Number() Over(Partition By title order By date) As RowNumber,* From {})T Where T.RowNumber > 1'.format(self.lableName)
-                cursor.execute(sqlDel)
-                sqlDelNull = 'delete from {} where (datalength (article) = 0 or datalength (article) is null) and (datalength (image) = 0 or datalength (image) is null)'.format(self.lableName)
-                cursor.execute(sqlDelNull)
-            connect.commit()
-            print('>>> 插入数据成功，表 {} 共插入 {} 行数据'.format(self.lableName, len(df)))
-            print('>>> 表 {} 删除重复数据、空白数据成功'.format(self.lableName))
-        except Exception as e:
-            print('>>> 插入数据失败', e)
-            connect.rollback()
-        finally:
-            connect.close()
+        engine = create_engine("mysql+pymysql://root:20021214Yzz+@localhost:3306/data?charset=utf8")
+        # 例如：engine = create_engine("mysql+pymysql://root:666666@localhost:3306/ajx?charset=utf8")
+        #  append 增量入库，不会覆盖之前的数据，
+        df.to_sql(self.lableName, con=engine, if_exists='append', index=False)
+
+
+            # def toSqlServer(self, df):
+    #     connect = pymssql.connect(self.server,  self.username,self.database,self.password)
+    #     # connect = pymssql.connect(server='LAPTOP-L', database='bupt')
+    #     # connect = pymssql.connect(host='localhost',  port='1433', database='bupt')
+    #     # connect = pymssql.connect(host='localhost', port='1433', database='bupt')
+    #     # 一次插入多条数据
+    #     cols = ','.join(df.columns)
+    #     val = (tuple(i) for i in df.values) # 这里需要转成tuple类型才能写入到数据库中
+    #     sqlstr = "INSERT INTO {}({}) VALUES ({})".format(self.lableName, cols, ','.join(['%s']*len(df.columns)))
+    #
+    #     try:
+    #         with connect.cursor() as cursor:
+    #             cursor.executemany(sqlstr, val)
+    #             sqlDel = 'Delete T From (Select Row_Number() Over(Partition By title order By date) As RowNumber,* From {})T Where T.RowNumber > 1'.format(self.lableName)
+    #             cursor.execute(sqlDel)
+    #             sqlDelNull = 'delete from {} where (datalength (article) = 0 or datalength (article) is null) and (datalength (image) = 0 or datalength (image) is null)'.format(self.lableName)
+    #             cursor.execute(sqlDelNull)
+    #         connect.commit()
+    #         print('>>> 插入数据成功，表 {} 共插入 {} 行数据'.format(self.lableName, len(df)))
+    #         print('>>> 表 {} 删除重复数据、空白数据成功'.format(self.lableName))
+    #     except Exception as e:
+    #         print('>>> 插入数据失败', e)
+    #         connect.rollback()
+    #     finally:
+    #         connect.close()
     
     '''
     Input:      None
@@ -177,7 +198,7 @@ class portalToSQL:
         # 更新post信息
         postdata={
                 'username':self.username,
-                'password':self.password,
+                'password':self.userpassword,
                 'submit':'登录',
                 'type':'username_password',
                 #'lt':dic['lt'],
